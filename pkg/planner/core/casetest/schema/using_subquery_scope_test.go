@@ -79,7 +79,7 @@ func TestUsingJoinNameScopeAfterSubqueryRewrite(t *testing.T) {
 		tk.MustQuery("select a.x from a join b using (x) where a.s in (select d.s from d where d.x = b.x + 1)").Check(testkit.Rows())
 		tk.MustQuery("select a.x from a join b on a.x = b.x where a.s in (select d.s from d where d.x = b.x)").Check(testkit.Rows("1"))
 		// The same reference when the subquery stays an apply instead of becoming a join.
-		tk.MustQuery("select /*+ NO_DECORRELATE() */ a.x from a join b using (x) where a.s in (select d.s from d where d.x = b.x)").Check(testkit.Rows("1"))
+		tk.MustQuery("select a.x from a join b using (x) where a.s in (select /*+ NO_DECORRELATE() */ d.s from d where d.x = b.x)").Check(testkit.Rows("1"))
 		tk.MustQuery("select a.x from a join b using (x) where a.s in (select d.s from d where d.x = b.x limit 1)").Check(testkit.Rows("1"))
 	}
 }
