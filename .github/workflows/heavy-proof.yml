@@ -1,0 +1,35 @@
+name: heavy-proof
+on:
+  push:
+    branches: ['heavy/oss074o']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: run
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: "1"
+        run: |
+          mkdir -p out
+          set +e
+          bash -c "make failpoint-enable && go test -tags=intest ./pkg/planner/core/casetest/schema -run TestUsing; r=$?; make failpoint-disable; exit $r" 2>&1 | tee "out/log-$SHARD_INDEX.txt"
+          rc=${PIPESTATUS[0]}
+          echo "exit=$rc" >> "out/log-$SHARD_INDEX.txt"
+          exit $rc
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}
+          path: out/
